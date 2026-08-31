@@ -34,7 +34,31 @@ export function CartDrawer() {
   const { lines, subtotal, isOpen, setOpen, setQty, remove, clear } = useCart();
   const [step, setStep] = useState<Step>("cart");
   const [orderId, setOrderId] = useState("");
-  const [form, setForm] = useState({ name: "", phone: "", address: "", slot: "7–9 PM" });
+  const [form, setForm] = useState({ name: "", phone: "", address: "", slot: "" });
+  const [order, setOrder] = useState<OrderDetails | null>(null);
+
+  // Slots are time-sensitive: compute on the client and refresh every minute
+  // so cutoffs expire live while the drawer is open.
+  const [slots, setSlots] = useState<DeliverySlot[]>([]);
+  useEffect(() => {
+    const refresh = () => setSlots(getAvailableSlots());
+    refresh();
+    const t = setInterval(refresh, 60_000);
+    return () => clearInterval(t);
+  }, []);
+
+  const selectedSlot = useMemo(
+    () => slots.find((s) => s.id === form.slot) ?? null,
+    [slots, form.slot],
+  );
+
+  // Keep a valid selection: pick the soonest slot, or move on if one expires.
+  useEffect(() => {
+    if (slots.length === 0) return;
+    if (!slots.some((s) => s.id === form.slot)) {
+      setForm((f) => ({ ...f, slot: slots[0]!.id }));
+    }
+  }, [slots, form.slot]);
 
   const deliveryFee = subtotal === 0 || subtotal >= FREE_ABOVE ? 0 : DELIVERY_FEE;
   const total = subtotal + deliveryFee;
@@ -46,9 +70,24 @@ export function CartDrawer() {
 
   const placeOrder = (e: FormEvent) => {
     e.preventDefault();
-    setOrderId(`CW${Math.floor(100000 + Math.random() * 900000)}`);
+    if (!selectedSlot) return;
+    const details: OrderDetails = {
+      orderId: `CW${Math.floor(100000 + Math.random() * 900000)}`,
+      name: form.name,
+      phone: form.phone,
+      address: form.address,
+      slot: selectedSlot.label,
+      lines,
+      subtotal,
+      deliveryFee,
+      total,
+    };
+    setOrderId(details.orderId);
+    setOrder(details);
     setStep("done");
     clear();
+    // Notify the kitchen on WhatsApp straight away.
+    openWhatsApp(OWNER_WHATSAPP, ownerMessage(details));
   };
 
   const inputCls =

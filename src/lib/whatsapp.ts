@@ -2,7 +2,7 @@ import { formatINR } from "@/lib/menu";
 import type { CartLine } from "@/lib/cart";
 
 /** Kitchen WhatsApp number in international format, digits only. */
-export const OWNER_WHATSAPP = "918904584277";
+export const OWNER_WHATSAPP = "919876547650";
 
 export interface OrderDetails {
   orderId: string;

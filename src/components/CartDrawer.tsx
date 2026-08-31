@@ -1,7 +1,29 @@
-import { useState, type FormEvent } from "react";
-import { CheckCircle2, Minus, Plus, ShoppingBasket, Trash2, X } from "lucide-react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
+import {
+  CheckCircle2,
+  Clock,
+  Minus,
+  MessageCircle,
+  Plus,
+  ShoppingBasket,
+  Trash2,
+  X,
+} from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { formatINR } from "@/lib/menu";
+import {
+  CUTOFF_MINUTES,
+  formatClosesIn,
+  getAvailableSlots,
+  type DeliverySlot,
+} from "@/lib/slots";
+import {
+  OWNER_WHATSAPP,
+  customerMessage,
+  openWhatsApp,
+  ownerMessage,
+  type OrderDetails,
+} from "@/lib/whatsapp";
 
 const DELIVERY_FEE = 49;
 const FREE_ABOVE = 999;

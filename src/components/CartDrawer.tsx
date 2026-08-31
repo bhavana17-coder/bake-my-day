@@ -1,7 +1,29 @@
-import { useState, type FormEvent } from "react";
-import { CheckCircle2, Minus, Plus, ShoppingBasket, Trash2, X } from "lucide-react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
+import {
+  CheckCircle2,
+  Clock,
+  Minus,
+  MessageCircle,
+  Plus,
+  ShoppingBasket,
+  Trash2,
+  X,
+} from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { formatINR } from "@/lib/menu";
+import {
+  CUTOFF_MINUTES,
+  formatClosesIn,
+  getAvailableSlots,
+  type DeliverySlot,
+} from "@/lib/slots";
+import {
+  OWNER_WHATSAPP,
+  customerMessage,
+  openWhatsApp,
+  ownerMessage,
+  type OrderDetails,
+} from "@/lib/whatsapp";
 
 const DELIVERY_FEE = 49;
 const FREE_ABOVE = 999;
@@ -12,7 +34,31 @@ export function CartDrawer() {
   const { lines, subtotal, isOpen, setOpen, setQty, remove, clear } = useCart();
   const [step, setStep] = useState<Step>("cart");
   const [orderId, setOrderId] = useState("");
-  const [form, setForm] = useState({ name: "", phone: "", address: "", slot: "7–9 PM" });
+  const [form, setForm] = useState({ name: "", phone: "", address: "", slot: "" });
+  const [order, setOrder] = useState<OrderDetails | null>(null);
+
+  // Slots are time-sensitive: compute on the client and refresh every minute
+  // so cutoffs expire live while the drawer is open.
+  const [slots, setSlots] = useState<DeliverySlot[]>([]);
+  useEffect(() => {
+    const refresh = () => setSlots(getAvailableSlots());
+    refresh();
+    const t = setInterval(refresh, 60_000);
+    return () => clearInterval(t);
+  }, []);
+
+  const selectedSlot = useMemo(
+    () => slots.find((s) => s.id === form.slot) ?? null,
+    [slots, form.slot],
+  );
+
+  // Keep a valid selection: pick the soonest slot, or move on if one expires.
+  useEffect(() => {
+    if (slots.length === 0) return;
+    if (!slots.some((s) => s.id === form.slot)) {
+      setForm((f) => ({ ...f, slot: slots[0]!.id }));
+    }
+  }, [slots, form.slot]);
 
   const deliveryFee = subtotal === 0 || subtotal >= FREE_ABOVE ? 0 : DELIVERY_FEE;
   const total = subtotal + deliveryFee;
@@ -24,9 +70,24 @@ export function CartDrawer() {
 
   const placeOrder = (e: FormEvent) => {
     e.preventDefault();
-    setOrderId(`CW${Math.floor(100000 + Math.random() * 900000)}`);
+    if (!selectedSlot) return;
+    const details: OrderDetails = {
+      orderId: `CW${Math.floor(100000 + Math.random() * 900000)}`,
+      name: form.name,
+      phone: form.phone,
+      address: form.address,
+      slot: selectedSlot.label,
+      lines,
+      subtotal,
+      deliveryFee,
+      total,
+    };
+    setOrderId(details.orderId);
+    setOrder(details);
     setStep("done");
     clear();
+    // Notify the kitchen on WhatsApp straight away.
+    openWhatsApp(OWNER_WHATSAPP, ownerMessage(details));
   };
 
   const inputCls =
@@ -208,16 +269,30 @@ export function CartDrawer() {
                 <label className="mb-1.5 block text-sm font-medium">
                   Delivery slot
                 </label>
-                <select
-                  value={form.slot}
-                  onChange={(e) => setForm({ ...form, slot: e.target.value })}
-                  className={inputCls}
-                >
-                  <option>Today, 7–9 PM</option>
-                  <option>Tomorrow, 10 AM–12 PM</option>
-                  <option>Tomorrow, 4–6 PM</option>
-                  <option>Tomorrow, 7–9 PM</option>
-                </select>
+                {slots.length === 0 ? (
+                  <p className="rounded-xl border border-dashed border-border px-4 py-3 text-sm text-muted-foreground">
+                    Checking today's kitchen availability…
+                  </p>
+                ) : (
+                  <select
+                    required
+                    value={form.slot}
+                    onChange={(e) => setForm({ ...form, slot: e.target.value })}
+                    className={inputCls}
+                  >
+                    {slots.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.label}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                <p className="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Clock className="h-3.5 w-3.5" />
+                  {selectedSlot && formatClosesIn(selectedSlot.closesInMinutes)
+                    ? `Orders for this slot ${formatClosesIn(selectedSlot.closesInMinutes)}`
+                    : `Slots close ${CUTOFF_MINUTES} minutes before delivery starts`}
+                </p>
               </div>
               <p className="rounded-xl bg-secondary px-4 py-3 text-xs leading-relaxed text-secondary-foreground">
                 Pay on delivery (UPI, card, or cash). We'll call to confirm your
@@ -251,14 +326,37 @@ export function CartDrawer() {
             <p className="text-sm leading-relaxed text-muted-foreground">
               Order <strong className="text-foreground">#{orderId}</strong> is
               confirmed. Our bakers are preheating the oven — we'll call you
-              shortly to confirm delivery ({form.slot}).
+              shortly to confirm delivery ({order?.slot}).
             </p>
-            <button
-              onClick={close}
-              className="mt-2 rounded-full bg-primary px-7 py-3 text-sm font-semibold text-primary-foreground shadow-bake transition-transform hover:scale-[1.03]"
-            >
-              Keep browsing
-            </button>
+            <p className="text-xs text-muted-foreground">
+              We've sent the order to our kitchen on WhatsApp. Get your own copy
+              below.
+            </p>
+            <div className="mt-1 flex w-full flex-col gap-2">
+              {order && (
+                <>
+                  <button
+                    onClick={() => openWhatsApp(order.phone, customerMessage(order))}
+                    className="flex items-center justify-center gap-2 rounded-full bg-pistachio px-7 py-3 text-sm font-semibold text-foreground shadow-bake transition-transform hover:scale-[1.03]"
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                    Send my WhatsApp confirmation
+                  </button>
+                  <button
+                    onClick={() => openWhatsApp(OWNER_WHATSAPP, ownerMessage(order))}
+                    className="flex items-center justify-center gap-2 rounded-full border border-border px-7 py-3 text-sm font-semibold transition-colors hover:bg-secondary"
+                  >
+                    Resend order to the kitchen
+                  </button>
+                </>
+              )}
+              <button
+                onClick={close}
+                className="rounded-full bg-primary px-7 py-3 text-sm font-semibold text-primary-foreground shadow-bake transition-transform hover:scale-[1.03]"
+              >
+                Keep browsing
+              </button>
+            </div>
           </div>
         )}
       </aside>

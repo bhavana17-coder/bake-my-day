@@ -326,14 +326,37 @@ export function CartDrawer() {
             <p className="text-sm leading-relaxed text-muted-foreground">
               Order <strong className="text-foreground">#{orderId}</strong> is
               confirmed. Our bakers are preheating the oven — we'll call you
-              shortly to confirm delivery ({form.slot}).
+              shortly to confirm delivery ({order?.slot}).
             </p>
-            <button
-              onClick={close}
-              className="mt-2 rounded-full bg-primary px-7 py-3 text-sm font-semibold text-primary-foreground shadow-bake transition-transform hover:scale-[1.03]"
-            >
-              Keep browsing
-            </button>
+            <p className="text-xs text-muted-foreground">
+              We've sent the order to our kitchen on WhatsApp. Get your own copy
+              below.
+            </p>
+            <div className="mt-1 flex w-full flex-col gap-2">
+              {order && (
+                <>
+                  <button
+                    onClick={() => openWhatsApp(order.phone, customerMessage(order))}
+                    className="flex items-center justify-center gap-2 rounded-full bg-pistachio px-7 py-3 text-sm font-semibold text-foreground shadow-bake transition-transform hover:scale-[1.03]"
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                    Send my WhatsApp confirmation
+                  </button>
+                  <button
+                    onClick={() => openWhatsApp(OWNER_WHATSAPP, ownerMessage(order))}
+                    className="flex items-center justify-center gap-2 rounded-full border border-border px-7 py-3 text-sm font-semibold transition-colors hover:bg-secondary"
+                  >
+                    Resend order to the kitchen
+                  </button>
+                </>
+              )}
+              <button
+                onClick={close}
+                className="rounded-full bg-primary px-7 py-3 text-sm font-semibold text-primary-foreground shadow-bake transition-transform hover:scale-[1.03]"
+              >
+                Keep browsing
+              </button>
+            </div>
           </div>
         )}
       </aside>

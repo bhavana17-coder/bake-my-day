@@ -42,7 +42,7 @@ export function Header() {
             </svg>
           </a>
           <a
-            href="tel:+918904584277"
+            href="tel:+919876547650"
             className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-background text-foreground transition-colors hover:bg-secondary"
             aria-label="Call the kitchen"
           >

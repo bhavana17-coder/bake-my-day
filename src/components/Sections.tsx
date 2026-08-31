@@ -112,7 +112,7 @@ export function About() {
           </ul>
           <p className="mt-5 text-xs leading-relaxed text-muted-foreground">
             Custom &amp; wedding cakes need 48 hours notice — call us at
-            +91 89045 84277.
+            +91 98765 47650.
           </p>
           <div className="mt-4 flex gap-3">
             <a
@@ -127,7 +127,7 @@ export function About() {
               WhatsApp order
             </a>
             <a
-              href="tel:+918904584277"
+              href="tel:+919876547650"
               className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-xs font-semibold transition-colors hover:bg-secondary"
             >
               <Phone className="h-4 w-4" />
@@ -168,7 +168,7 @@ export function Footer() {
             </svg>
           </a>
           <a
-            href="tel:+918904584277"
+            href="tel:+919876547650"
             className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-background text-foreground transition-colors hover:bg-secondary"
             aria-label="Call"
           >

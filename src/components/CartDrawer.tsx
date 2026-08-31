@@ -269,16 +269,30 @@ export function CartDrawer() {
                 <label className="mb-1.5 block text-sm font-medium">
                   Delivery slot
                 </label>
-                <select
-                  value={form.slot}
-                  onChange={(e) => setForm({ ...form, slot: e.target.value })}
-                  className={inputCls}
-                >
-                  <option>Today, 7–9 PM</option>
-                  <option>Tomorrow, 10 AM–12 PM</option>
-                  <option>Tomorrow, 4–6 PM</option>
-                  <option>Tomorrow, 7–9 PM</option>
-                </select>
+                {slots.length === 0 ? (
+                  <p className="rounded-xl border border-dashed border-border px-4 py-3 text-sm text-muted-foreground">
+                    Checking today's kitchen availability…
+                  </p>
+                ) : (
+                  <select
+                    required
+                    value={form.slot}
+                    onChange={(e) => setForm({ ...form, slot: e.target.value })}
+                    className={inputCls}
+                  >
+                    {slots.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.label}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                <p className="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Clock className="h-3.5 w-3.5" />
+                  {selectedSlot && formatClosesIn(selectedSlot.closesInMinutes)
+                    ? `Orders for this slot ${formatClosesIn(selectedSlot.closesInMinutes)}`
+                    : `Slots close ${CUTOFF_MINUTES} minutes before delivery starts`}
+                </p>
               </div>
               <p className="rounded-xl bg-secondary px-4 py-3 text-xs leading-relaxed text-secondary-foreground">
                 Pay on delivery (UPI, card, or cash). We'll call to confirm your
